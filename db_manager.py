@@ -89,7 +89,6 @@ def main():
 
     humanENSEMBLURL    = 'ftp://ftp.ensembl.org/pub/current_fasta/homo_sapiens/pep/'
 
-
     #  <!-- End of Databases --!>
 
     # <!--- Conf Paths -->
