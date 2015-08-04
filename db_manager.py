@@ -112,9 +112,12 @@ def main():
 
     # Human Complete Proteome Uniprot: A UniProt complete proteome consists of the set of proteins thought to be expressed by an organism whose genome has been completely sequenced (SwissProt+TreMBL)
 
-    humanUniprotProteomeURL = 'http://www.uniprot.org/uniprot/?query=taxonomy:9606+AND+keyword:"Complete+proteome"&force=yes&format=fasta&include=yes'
-    humanSwissProtURL = 'http://www.uniprot.org/uniprot/?sort=&desc=&compress=yes&query=&fil=reviewed:yes+AND+taxonomy:9606&format=fasta&force=yes&include=yes'
+    humanUniprotProteomeURL = 'http://www.uniprot.org/uniprot/?query=taxonomy:9606+AND+keyword:"Complete+proteome"&force=yes&format=fasta&include=yes&compress=yes'
+    humanUniprotProteomeFile = 'humanUniprotFile.fasta.gz'
 
+    humanSwissProtURL  = 'http://www.uniprot.org/uniprot/?sort=&desc=&compress=yes&query=&fil=reviewed:yes+AND+taxonomy:9606&format=fasta&force=yes&include=yes'
+    humanSwissProtFile = 'humanSwissFile.fasta.gz' \
+                         ''
     # Human ReqSeq: The human ReqSeq contains species-specific RefSeq directories provide a cumulative set of records for transcripts and proteins for those species.
 
     humanReqSeqRootURL = 'ftp://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/mRNA_Prot/'
@@ -133,6 +136,7 @@ def main():
     maxQuantCrap = pathsep + "mq-crap"
     path = "."
     swissprot = pathsep + "swissprot"
+    humanCompleteUniprot = pathsep + "complete-human"
 
     # <!-- End of the Conf Paths -->
 
@@ -237,7 +241,7 @@ def main():
 
     if updateAll or ('swissprot' in databaseUpdated):
 
-        print("Updating Uniprot databases and all the dependencies... ")
+        print("Updating Swissprot/Uniprot databases and all the dependencies... ")
 
         print("Downloading the SwissProt database..")
         urllib.request.urlretrieve(uniprotSprotURL + uniprotSprotFile,
@@ -275,6 +279,44 @@ def main():
         print("Creating the links for latest version to the current folder... ")
 
         symbolink(path + swissprot + pathsep + date, path + swissprot + latest)
+
+    if updateAll or ('complete-human' in databaseUpdated):
+
+        print("Updating Uniprot Complete Human database and all the dependencies... ")
+
+        print("Downloading the Uniprot Complete Human database..")
+
+        urllib.request.urlretrieve(humanUniprotProteomeURL, filename=path + swissprot + pathsep + humanUniprotProteomeFile)
+        os.rename(path + swissprot + pathsep + humanUniprotProteomeFile, path + swissprot + pathsep + date + pathsep + humanUniprotProteomeFile)
+        gunzip(path + swissprot + pathsep + date + pathsep + humanUniprotProteomeFile)
+
+        print("Human Complete Uniprot updated!!")
+
+    if updateAll or ('human-swissprot' in databaseUpdated):
+
+        print("Updating Swissprot Human database and all the dependencies... ")
+
+        print("Downloading the Swissprot Human database..")
+
+        urllib.request.urlretrieve(humanSwissProtURL, filename=path + swissprot + pathsep + humanSwissProtFile)
+        os.rename(path + swissprot + pathsep + humanSwissProtFile, path + swissprot + pathsep + date + pathsep + humanSwissProtFile)
+        gunzip(path + swissprot + pathsep + date + pathsep + humanSwissProtFile)
+
+        print("Human Complete SwissProt updated!!")
+
+    if updateAll or ('human-ensembl' in databaseUpdated):
+
+        print("Updating Human Ensembl database and all the dependencies... ")
+
+        
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
