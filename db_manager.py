@@ -9,7 +9,7 @@ import urllib.request
 import gzip
 import tarfile
 import zipfile
-from urllib.request import FancyURLopener
+from subprocess import call
 
 download_progress = 0
 
@@ -18,10 +18,20 @@ def report(block_no, block_size, file_size):
     global download_progress
     download_progress += block_size
     print("Downloaded block %i, %i/%i bytes recieved." % (block_no, download_progress, file_size))
+    sys.stdout.flush()
 
 def downloadFiles(url, fileName):
     urllib.request.urlretrieve(url, fileName, reporthook=report)
     print("File Donwload Complete: " + url)
+
+def rsyncFiles(url,path):
+    subprocess.call(["rsync", "-va", "--progress", url, " ", path])
+
+def gunzipBig(fileName):
+    try:
+        call(["gunzip", fileName])
+    except:
+        print ("Unexpected error from systems:", sys.exc_info())
 
 def symbolink(src, desc):
     files = os.listdir(src)
@@ -191,6 +201,7 @@ def main():
         print("Downloading the CRAP database..")
         # urllib.request.urlretrieve(crapURL + crapFile, filename=path + crapDir + pathsep + crapFile)
         downloadFiles(crapURL + crapFile, path + crapDir + pathsep + crapFile)
+        # rsyncFiles(crapURL + crapFile, path + crapDir + pathsep)
 
         print("Moving and unzip files in the current file... ")
 
@@ -234,7 +245,7 @@ def main():
 
         print("Downloading the SwissProt Dat...")
         downloadFiles(uniprotSprotDatURL + uniprotSprotDatFile, path + swissprot + pathsep + uniprotSprotDatFile)
-
+        #
         print("Downloading the SwissProt Taxonomy Dump... ")
         downloadFiles(uniprotSprotTaxonomiesDumpURL + uniprotSprotTaxonomiesDumpFile,path + swissprot + pathsep + uniprotSprotTaxonomiesDumpFile)
 
@@ -248,16 +259,14 @@ def main():
 
         print("Moving and unzip files in the current file... ")
 
-        os.rename(path + swissprot + pathsep + uniprotSprotFile,
-                  path + swissprot + pathsep + date + pathsep + uniprotSprotFile)
+        os.rename(path + swissprot + pathsep + uniprotSprotFile,path + swissprot + pathsep + date + pathsep + uniprotSprotFile)
         gunzip(path + swissprot + pathsep + date + pathsep + uniprotSprotFile)
 
-        os.rename(path + swissprot + pathsep + uniprotSprotDatFile,
-                  path + swissprot + pathsep + date + pathsep + uniprotSprotDatFile)
-        gunzip(path + swissprot + pathsep + date + pathsep + uniprotSprotDatFile)
 
-        os.rename(path + swissprot + pathsep + uniprotSprotTaxonomiesDumpFile,
-                  path + swissprot + pathsep + date + pathsep + uniprotSprotTaxonomiesDumpFile)
+        os.rename(path + swissprot + pathsep + uniprotSprotDatFile, path + swissprot + pathsep + date + pathsep + uniprotSprotDatFile)
+        gunzipBig(path + swissprot + pathsep + date + pathsep + uniprotSprotDatFile)
+
+        os.rename(path + swissprot + pathsep + uniprotSprotTaxonomiesDumpFile, path + swissprot + pathsep + date + pathsep + uniprotSprotTaxonomiesDumpFile)
         untar(path + swissprot + pathsep + date + pathsep + uniprotSprotTaxonomiesDumpFile)
 
         os.rename(path + swissprot + pathsep + uniprotSprotSpecListFile,
