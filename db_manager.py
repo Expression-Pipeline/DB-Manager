@@ -5,8 +5,8 @@ import argparse
 from argparse import RawTextHelpFormatter
 
 import time
-import urllib.request
-import urllib.parse
+import urllib
+import urllib
 import gzip, tarfile, zipfile, re
 from ftplib import FTP
 from subprocess import call
@@ -24,13 +24,13 @@ def gunzipAddMaster(fileName, masterFile):
     open(masterFile, 'ab').write(s)
 
 def retrieveFromPathAndMerge(url, dir, sufix, date):
-    urlpath = urllib.request.urlopen(url)
+    urlpath = urllib.urlopen(url)
     string = urlpath.read().decode('utf-8')
     filelist = string.split()
 
     for a in filelist:
         if a.endswith(sufix):
-            urllib.request.urlretrieve(url + a, filename=dir + a)
+            urllib.urlretrieve(url + a, filename=dir + a)
 
     fasta_master_file = 'refseq-'+ date + '-protein.fasta'
 
@@ -45,13 +45,13 @@ def retrieveFromPathAndMerge(url, dir, sufix, date):
 
 
 def retrieveFromPath(url, file, sufix):
-    urlpath = urllib.request.urlopen(url)
+    urlpath = urllib.urlopen(url)
     string = urlpath.read().decode('utf-8')
     filelist = string.split()
 
     for a in filelist:
         if a.endswith(sufix):
-            urllib.request.urlretrieve(url + a, filename=file)
+            urllib.urlretrieve(url + a, filename=file)
 
 
 def report(block_no, block_size, file_size):
@@ -61,7 +61,7 @@ def report(block_no, block_size, file_size):
     sys.stdout.flush()
 
 def downloadFiles(url, fileName):
-    urllib.request.urlretrieve(url, fileName, reporthook=report)
+    urllib.urlretrieve(url, fileName, reporthook=report)
     print("File Donwload Complete: " + url)
 
 def rsyncFiles(url,path):
@@ -306,7 +306,7 @@ def main():
         print("Updating Swissprot/Uniprot databases and all the dependencies... ")
 
         print("Downloading the SwissProt database..")
-        urllib.request.urlretrieve(uniprotSprotURL + uniprotSprotFile,
+        urllib.urlretrieve(uniprotSprotURL + uniprotSprotFile,
                                    filename=path + swissprot + pathsep + uniprotSprotFile)
 
         print("Downloading the SwissProt Dat...")
@@ -348,7 +348,7 @@ def main():
 
         print("Downloading the Uniprot Complete Human database..")
 
-        urllib.request.urlretrieve(humanUniprotProteomeURL, filename=path + swissprot + pathsep + humanUniprotProteomeFile)
+        urllib.urlretrieve(humanUniprotProteomeURL, filename=path + swissprot + pathsep + humanUniprotProteomeFile)
         os.rename(path + swissprot + pathsep + humanUniprotProteomeFile, path + swissprot + pathsep + date + pathsep + humanUniprotProteomeFile)
         gunzip(path + swissprot + pathsep + date + pathsep + humanUniprotProteomeFile)
 
@@ -360,7 +360,7 @@ def main():
 
         print("Downloading the Swissprot Human database..")
 
-        urllib.request.urlretrieve(humanSwissProtURL, filename=path + humanSwissProt + pathsep + humanSwissProtFile)
+        urllib.urlretrieve(humanSwissProtURL, filename=path + humanSwissProt + pathsep + humanSwissProtFile)
 
         if not os.path.isdir(path + humanSwissProt + pathsep + date):
             os.mkdir(path + humanSwissProt + pathsep + date)
