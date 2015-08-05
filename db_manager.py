@@ -6,12 +6,52 @@ from argparse import RawTextHelpFormatter
 
 import time
 import urllib.request
-import gzip
-import tarfile
-import zipfile
+import urllib.parse
+import gzip, tarfile, zipfile, re
+from ftplib import FTP
 from subprocess import call
 
+
 download_progress = 0
+
+
+def gunzipAddMaster(fileName, masterFile):
+    inF = gzip.open(fileName, 'rb')
+
+    # uncompress the gzip_path INTO THE 's' variable
+    s = inF.read()
+    inF.close()
+
+    # get original filename (remove 3 characters from the end: ".gz")
+    fname = fileName[:-3]
+
+    # store uncompressed file data from 's' variable
+    open(masterFile, 'ab').write(s)
+
+def retrieveFromPathAndMerge(url, dir, sufix, date):
+    urlpath = urllib.request.urlopen(url)
+    string = urlpath.read().decode('utf-8')
+    filelist = string.split()
+
+    for a in filelist:
+        if a.endswith(sufix):
+            urllib.request.urlretrieve(url + a, filename=dir + a)
+
+    files = os.listdir(dir)
+    fasta_master_file = 'refseq-'+ date + '-protein.fasta'
+    for f in files:
+        gunzipAddMaster(dir+f, dir+fasta_master_file)
+
+
+def retrieveFromPath(url, file, sufix):
+    urlpath = urllib.request.urlopen(url)
+    string = urlpath.read().decode('utf-8')
+    filelist = string.split()
+
+    for a in filelist:
+        if a.endswith(sufix):
+            urllib.request.urlretrieve(url + a, filename=file)
+
 
 
 def report(block_no, block_size, file_size):
@@ -120,11 +160,13 @@ def main():
                          ''
     # Human ReqSeq: The human ReqSeq contains species-specific RefSeq directories provide a cumulative set of records for transcripts and proteins for those species.
 
-    humanReqSeqRootURL = 'ftp://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/mRNA_Prot/'
+    humanRefSeqURL = 'ftp://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/mRNA_Prot/'
+
 
     # Human ENSEMBL Peptides database: the super-set of all translations resulting from Ensembl known or novel gene predictions.
 
-    humanENSEMBLURL = 'ftp://ftp.ensembl.org/pub/current_fasta/homo_sapiens/pep/'
+    humanENSEMBLURL  = 'ftp://ftp.ensembl.org/pub/current_fasta/homo_sapiens/pep/'
+    humanENSEMBLFILE = 'human_pep.all.fa.gz'
 
     # <!-- End of Databases --!>
 
@@ -137,6 +179,9 @@ def main():
     path = "."
     swissprot = pathsep + "swissprot"
     humanCompleteUniprot = pathsep + "complete-human"
+    humanSwissProt  = pathsep + "human-swissprot"
+    humanENSEMBL    = pathsep + "human-ensembl"
+    humanRefSeq     = pathsep + "human-refseq"
 
     # <!-- End of the Conf Paths -->
 
@@ -192,6 +237,22 @@ def main():
         os.mkdir(path + swissprot)
         if not os.path.isdir(path + swissprot + latest):
             os.mkdir(path + swissprot + latest)
+
+    if not os.path.isdir(path + humanSwissProt):
+        os.mkdir(path + humanSwissProt)
+        if not os.path.isdir(path + humanSwissProt + latest):
+            os.mkdir(path + humanSwissProt + latest)
+
+    if not os.path.isdir(path + humanENSEMBL):
+        os.mkdir(path + humanENSEMBL)
+        if not os.path.isdir(path + humanENSEMBL + latest):
+            os.mkdir(path + humanENSEMBL + latest)
+
+    if not os.path.isdir(path + humanRefSeq):
+        os.mkdir(path + humanRefSeq)
+        if not os.path.isdir(path + humanRefSeq + latest):
+            os.mkdir(path + humanRefSeq + latest)
+
 
     databaseUpdated = args.update
 
@@ -298,17 +359,57 @@ def main():
 
         print("Downloading the Swissprot Human database..")
 
-        urllib.request.urlretrieve(humanSwissProtURL, filename=path + swissprot + pathsep + humanSwissProtFile)
-        os.rename(path + swissprot + pathsep + humanSwissProtFile, path + swissprot + pathsep + date + pathsep + humanSwissProtFile)
-        gunzip(path + swissprot + pathsep + date + pathsep + humanSwissProtFile)
+        urllib.request.urlretrieve(humanSwissProtURL, filename=path + humanSwissProt + pathsep + humanSwissProtFile)
+
+        if not os.path.isdir(path + humanSwissProt + pathsep + date):
+            os.mkdir(path + humanSwissProt + pathsep + date)
+
+        os.rename(path + humanSwissProt + pathsep + humanSwissProtFile, path + humanSwissProt + pathsep + date + pathsep + humanSwissProtFile)
+        gunzip(path + humanSwissProt + pathsep + date + pathsep + humanSwissProtFile)
+
+        symbolink(path + humanSwissProt + pathsep + date, path + humanSwissProt + latest)
 
         print("Human Complete SwissProt updated!!")
 
     if updateAll or ('human-ensembl' in databaseUpdated):
 
-        print("Updating Human Ensembl database and all the dependencies... ")
+        print("Updating human-ensembl and all the dependencies... ")
 
-        
+        print("Downloading the Human ENSEMBL database..")
+
+        sufix = '.pep.all.fa.gz'
+
+        retrieveFromPath(humanENSEMBLURL, path + humanENSEMBL + pathsep + humanENSEMBLFILE, sufix)
+
+        if not os.path.isdir(path + humanENSEMBL + pathsep + date):
+            os.mkdir(path + humanENSEMBL + pathsep + date)
+
+        os.rename(path + humanENSEMBL + pathsep + humanENSEMBLFILE, path + humanENSEMBL + pathsep + date + pathsep + humanENSEMBLFILE)
+        gunzip(path + humanENSEMBL + pathsep + date + pathsep + humanENSEMBLFILE)
+
+        symbolink(path + humanENSEMBL + pathsep + date, path + humanENSEMBL + latest)
+
+        print("Human ENSEMBL updated!!")
+
+    if updateAll or ('human-refseq' in databaseUpdated):
+
+        print("Updating Human RefSeq and all the dependencies... ")
+
+        print("Downloading the Human RefSeq database..")
+
+        if not os.path.isdir(path + humanRefSeq + pathsep + date):
+            os.mkdir(path + humanRefSeq + pathsep + date)
+
+        sufix = "protein.faa.gz"
+
+        retrieveFromPathAndMerge(humanRefSeqURL, path+humanRefSeq+ pathsep+date+pathsep, sufix, date)
+
+        symbolink(path + humanRefSeq + pathsep + date, path + humanRefSeq + latest)
+
+        print("Human ReqSeq updated!!")
+
+
+
 
 
 
