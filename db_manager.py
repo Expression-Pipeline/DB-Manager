@@ -11,9 +11,7 @@ import gzip, tarfile, zipfile, re
 from ftplib import FTP
 from subprocess import call
 
-
 download_progress = 0
-
 
 def gunzipAddMaster(fileName, masterFile):
     inF = gzip.open(fileName, 'rb')
@@ -21,9 +19,6 @@ def gunzipAddMaster(fileName, masterFile):
     # uncompress the gzip_path INTO THE 's' variable
     s = inF.read()
     inF.close()
-
-    # get original filename (remove 3 characters from the end: ".gz")
-    fname = fileName[:-3]
 
     # store uncompressed file data from 's' variable
     open(masterFile, 'ab').write(s)
@@ -37,8 +32,14 @@ def retrieveFromPathAndMerge(url, dir, sufix, date):
         if a.endswith(sufix):
             urllib.request.urlretrieve(url + a, filename=dir + a)
 
-    files = os.listdir(dir)
     fasta_master_file = 'refseq-'+ date + '-protein.fasta'
+
+    if os.path.isfile(dir + fasta_master_file):
+        os.remove(dir + fasta_master_file)
+
+    files = os.listdir(dir)
+
+
     for f in files:
         gunzipAddMaster(dir+f, dir+fasta_master_file)
 
@@ -51,7 +52,6 @@ def retrieveFromPath(url, file, sufix):
     for a in filelist:
         if a.endswith(sufix):
             urllib.request.urlretrieve(url + a, filename=file)
-
 
 
 def report(block_no, block_size, file_size):
@@ -265,16 +265,15 @@ def main():
 
         print("Downloading the CRAP database..")
         # urllib.request.urlretrieve(crapURL + crapFile, filename=path + crapDir + pathsep + crapFile)
-        downloadFiles(crapURL + crapFile, path + crapDir + pathsep + crapFile)
-        # rsyncFiles(crapURL + crapFile, path + crapDir + pathsep)
-
-        print("Moving and unzip files in the current file... ")
-
-        if not os.path.isdir(path + crapDir + pathsep + date):
-            os.mkdir(path + crapDir + pathsep + date)
-
-        os.rename(path + crapDir + pathsep + crapFile, path + crapDir + pathsep + date + pathsep + crapFile)
-        symbolink(path + crapDir + pathsep + date, path + crapDir + latest)
+        try:
+            downloadFiles(crapURL + crapFile, path + crapDir + pathsep + crapFile)
+            print("Moving and unzip files in the current file... ")
+            if not os.path.isdir(path + crapDir + pathsep + date):
+                os.mkdir(path + crapDir + pathsep + date)
+            os.rename(path + crapDir + pathsep + crapFile, path + crapDir + pathsep + date + pathsep + crapFile)
+            symbolink(path + crapDir + pathsep + date, path + crapDir + latest)
+        except:
+            print("The download of CRAP database wasn't successful...")
 
     # Updating information for MaxQuant Contaimant database
 
@@ -283,22 +282,24 @@ def main():
 
         print("Updating MaxQuant CRAP database and all the dependencies...")
 
-        print("Downloading the MaxQuant CRAP database..")
-        downloadFiles(maxQuantcrapURL + maxQuantcrapFile,path + maxQuantCrap + pathsep + maxQuantcrapFile)
+        try:
+            print("Downloading the MaxQuant CRAP database..")
+            downloadFiles(maxQuantcrapURL + maxQuantcrapFile,path + maxQuantCrap + pathsep + maxQuantcrapFile)
 
-        print("Moving and unzip files in the current file... ")
+            print("Moving and unzip files in the current file... ")
 
-        if not os.path.isdir(path + swissprot + pathsep + date):
-            os.mkdir(path + maxQuantCrap + pathsep + date)
+            if not os.path.isdir(path + swissprot + pathsep + date):
+                os.mkdir(path + maxQuantCrap + pathsep + date)
 
-        os.rename(path + maxQuantCrap + pathsep + maxQuantcrapFile,
+            os.rename(path + maxQuantCrap + pathsep + maxQuantcrapFile,
                   path + maxQuantCrap + pathsep + date + pathsep + maxQuantcrapFile)
-        unzip(path + maxQuantCrap + pathsep + date + pathsep + maxQuantcrapFile)
+            unzip(path + maxQuantCrap + pathsep + date + pathsep + maxQuantcrapFile)
 
-        symbolink(path + maxQuantCrap + pathsep + date, path + maxQuantCrap + latest)
+            symbolink(path + maxQuantCrap + pathsep + date, path + maxQuantCrap + latest)
+        except:
+            print("The download of CRAP database wasn't successful...")
 
-
-    # Updating uniprot
+    # Updating Uniprot
 
     if updateAll or ('swissprot' in databaseUpdated):
 
@@ -407,17 +408,6 @@ def main():
         symbolink(path + humanRefSeq + pathsep + date, path + humanRefSeq + latest)
 
         print("Human ReqSeq updated!!")
-
-
-
-
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
