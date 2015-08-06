@@ -13,6 +13,19 @@ from subprocess import call
 
 download_progress = 0
 
+def runDecoy(dir, decoyCommand):
+    files = os.listdir(dir)
+
+    for f in files:
+        if f.endswith(".fasta"):
+            finalCommand = decoyCommand[0]%(dir + f,dir + f[:-6] + "_decoy.fasta")
+            try:
+                call([finalCommand])
+            except:
+                print ("Unexpected error from systems:", sys.exc_info())
+
+
+
 def gunzipAddMaster(fileName, masterFile):
     inF = gzip.open(fileName, 'rb')
 
@@ -208,6 +221,7 @@ def main():
                         help='This variable control the place were the user want to generate the database structure, if not information is provided the structure will be generated in .')
     parser.add_argument('-u', '--update', nargs='+',
                         help='This variable enables the update of a particular database including the the generation of decoys, (supported databases: crap, swissprot, human-uniprot)')
+    parser.add_argument('-d', '--decoy', nargs="+", help="The command line option to generate the decoy, using different tools (eg: 'Decoy -shuffle -in %s -out %s')")
 
     args = parser.parse_args()
 
@@ -256,9 +270,6 @@ def main():
 
     databaseUpdated = args.update
 
-    # Updating the crap database
-
-
     if updateAll or ('crap' in databaseUpdated):
 
         print("Updating CRAP database and all the dependencies...")
@@ -271,7 +282,12 @@ def main():
             if not os.path.isdir(path + crapDir + pathsep + date):
                 os.mkdir(path + crapDir + pathsep + date)
             os.rename(path + crapDir + pathsep + crapFile, path + crapDir + pathsep + date + pathsep + crapFile)
+
+            if args.decoy:
+                runDecoy(path + crapDir + pathsep + date, args.decoy)
+
             symbolink(path + crapDir + pathsep + date, path + crapDir + latest)
+
         except:
             print("The download of CRAP database wasn't successful...")
 
@@ -295,7 +311,11 @@ def main():
                   path + maxQuantCrap + pathsep + date + pathsep + maxQuantcrapFile)
             unzip(path + maxQuantCrap + pathsep + date + pathsep + maxQuantcrapFile)
 
+            if args.decoy:
+                runDecoy(path + maxQuantCrap + pathsep + date, args.decoy)
+
             symbolink(path + maxQuantCrap + pathsep + date, path + maxQuantCrap + latest)
+
         except:
             print("The download of CRAP database wasn't successful...")
 
@@ -340,6 +360,9 @@ def main():
 
         print("Creating the links for latest version to the current folder... ")
 
+        if args.decoy:
+            runDecoy(path + swissprot + pathsep + date, args.decoy)
+
         symbolink(path + swissprot + pathsep + date, path + swissprot + latest)
 
     if updateAll or ('complete-human' in databaseUpdated):
@@ -348,9 +371,15 @@ def main():
 
         print("Downloading the Uniprot Complete Human database..")
 
-        urllib.urlretrieve(humanUniprotProteomeURL, filename=path + swissprot + pathsep + humanUniprotProteomeFile)
-        os.rename(path + swissprot + pathsep + humanUniprotProteomeFile, path + swissprot + pathsep + date + pathsep + humanUniprotProteomeFile)
-        gunzip(path + swissprot + pathsep + date + pathsep + humanUniprotProteomeFile)
+        urllib.urlretrieve(humanUniprotProteomeURL, filename=path + humanCompleteUniprot + pathsep + humanUniprotProteomeFile)
+        os.rename(path + humanCompleteUniprot + pathsep + humanUniprotProteomeFile, path + humanCompleteUniprot + pathsep + date + pathsep + humanUniprotProteomeFile)
+
+        gunzip(path + humanCompleteUniprot + pathsep + date + pathsep + humanUniprotProteomeFile)
+
+        if args.decoy:
+            runDecoy(path + humanCompleteUniprot + pathsep + date, args.decoy)
+
+        symbolink(path + humanCompleteUniprot + pathsep + date, path + humanCompleteUniprot + latest)
 
         print("Human Complete Uniprot updated!!")
 
@@ -367,6 +396,9 @@ def main():
 
         os.rename(path + humanSwissProt + pathsep + humanSwissProtFile, path + humanSwissProt + pathsep + date + pathsep + humanSwissProtFile)
         gunzip(path + humanSwissProt + pathsep + date + pathsep + humanSwissProtFile)
+
+        if args.decoy:
+            runDecoy(path + humanSwissProt + pathsep + date, args.decoy)
 
         symbolink(path + humanSwissProt + pathsep + date, path + humanSwissProt + latest)
 
@@ -388,6 +420,9 @@ def main():
         os.rename(path + humanENSEMBL + pathsep + humanENSEMBLFILE, path + humanENSEMBL + pathsep + date + pathsep + humanENSEMBLFILE)
         gunzip(path + humanENSEMBL + pathsep + date + pathsep + humanENSEMBLFILE)
 
+        if args.decoy:
+            runDecoy(path + humanENSEMBL + pathsep + date, args.decoy)
+
         symbolink(path + humanENSEMBL + pathsep + date, path + humanENSEMBL + latest)
 
         print("Human ENSEMBL updated!!")
@@ -405,10 +440,12 @@ def main():
 
         retrieveFromPathAndMerge(humanRefSeqURL, path+humanRefSeq+ pathsep+date+pathsep, sufix, date)
 
+        if args.decoy:
+            runDecoy(path + humanRefSeq + pathsep + date, args.decoy)
+
         symbolink(path + humanRefSeq + pathsep + date, path + humanRefSeq + latest)
 
         print("Human ReqSeq updated!!")
-
 
 if __name__ == '__main__':
     main()
