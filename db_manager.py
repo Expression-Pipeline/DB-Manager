@@ -60,7 +60,7 @@ humanENSEMBLFILE = 'human_pep.all.fa.gz'
 # Spectral Libraries
 
 gpmdbURL = "ftp://ftp.thegpm.org/projects/xhunter/libs/"
-nistLibraries = ""
+nistURL = "ftp://chemdata.nist.gov/download/peptide_library/libraries/"
 
 
 
@@ -70,11 +70,12 @@ crapDir = pathsep + "crap"
 maxQuantCrap = pathsep + "mq-crap"
 path = "."
 swissprot = pathsep + "swissprot"
-humanCompleteUniprot = pathsep + "complete-human"
+humanCompleteUniprot = pathsep + "human-complete"
 humanSwissProt  = pathsep + "human-swissprot"
 humanENSEMBL    = pathsep + "human-ensembl"
 humanRefSeq     = pathsep + "human-refseq"
 gpmdbSpectraLib = pathsep + "gpmdb-splib"
+nistSpectraLib  = pathsep + "nist-splib"
 
 
 def runDecoy(dir, decoyCommand):
@@ -119,7 +120,8 @@ def retrieveFromPathAndMerge(url, dir, sufix, date):
 
 
     for f in files:
-        gunzipAddMaster(dir+f, dir+fasta_master_file)
+        if f.endswith(".gz"):
+            gunzipAddMaster(dir+f, dir+fasta_master_file)
 
 
 def retrieveFromPath(url, file, sufix):
@@ -196,11 +198,17 @@ def unzip(fileName):
             os.makedirs(dirname)
         zfile.extract(name, dirname)
 
-def downloadWgetFiles(gpmdbURL, dir):
+def downloadWgetFiles(url, dir):
     try:
-        call("wget " + url + "--recursive -np -P " + dir, shell=True)
+        call("wget " + url + " --recursive -np -P " + dir, shell=True)
     except:
         print ("Unexpected error from systems:", sys.exc_info())
+
+def cleanDirectories(url , dir):
+    url = url.replace("ftp://", "")
+    url = url.replace("http://", "")
+    os.rename(dir + url, dir + pathsep)
+
 
 def main():
     updateAll = False
@@ -285,6 +293,10 @@ def main():
         if not os.path.isdir(path + gpmdbSpectraLib + latest):
             os.mkdir(path + gpmdbSpectraLib + latest)
 
+    if not os.path.isdir(path + nistSpectraLib):
+        os.mkdir(path + nistSpectraLib)
+        if not os.path.isdir(path + nistSpectraLib + latest):
+            os.mkdir(path + nistSpectraLib + latest)
 
 
     databaseUpdated = args.update
@@ -473,10 +485,29 @@ def main():
 
     if updateAll or ('gpmdb-splib' in databaseUpdated):
 
+        print("Updating the gpmdb spectrum library... ")
+
         if not os.path.isdir(path + gpmdbSpectraLib + pathsep + date):
             os.mkdir(path + gpmdbSpectraLib + pathsep + date)
 
         downloadWgetFiles(gpmdbURL, path+gpmdbSpectraLib +pathsep+date+pathsep)
+
+        cleanDirectories(gpmdbURL, path + gpmdbSpectraLib + pathsep + date + pathsep)
+
+        symbolink(path + gpmdbSpectraLib + pathsep + date, path + gpmdbSpectraLib + latest)
+
+    if updateAll or ('nist-splib' in databaseUpdated):
+
+        print("Updating the NIST spectrum library..")
+
+        if not os.path.isdir(path + nistSpectraLib + pathsep + date):
+            os.mkdir(path + nistSpectraLib + pathsep + date)
+
+        downloadWgetFiles(nistURL, path+nistSpectraLib + pathsep + date + pathsep)
+
+        cleanDirectories(nistURL, path+nistSpectraLib + pathsep + date + pathsep)
+
+        symbolink(path + nistSpectraLib + pathsep + date, path + nistSpectraLib + latest)
 
 
 
