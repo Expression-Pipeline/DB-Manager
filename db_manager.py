@@ -12,15 +12,17 @@ from ftplib import FTP
 from subprocess import call
 
 download_progress = 0
+pathsep = "/"
 
 def runDecoy(dir, decoyCommand):
     files = os.listdir(dir)
-
+    print("Running the Decoy commandline" + decoyCommand)
     for f in files:
-        if f.endswith(".fasta"):
-            finalCommand = decoyCommand[0]%(dir + f,dir + f[:-6] + "_decoy.fasta")
+        if f.endswith(".fasta") and not f.endswith("_decoy.fasta"):
+            finalCommand = decoyCommand%(dir + pathsep + f,dir + pathsep + f[:-6] + "_decoy.fasta")
+            print("Running the Decoy commandline: " + finalCommand)
             try:
-                call([finalCommand])
+                call(finalCommand, shell=True)
             except:
                 print ("Unexpected error from systems:", sys.exc_info())
 
@@ -184,7 +186,7 @@ def main():
     # <!-- End of Databases --!>
 
     # <!--- Conf Paths -->
-    pathsep = "/"
+
 
     latest = pathsep + "latest"
     crapDir = pathsep + "crap"
@@ -221,16 +223,19 @@ def main():
                         help='This variable control the place were the user want to generate the database structure, if not information is provided the structure will be generated in .')
     parser.add_argument('-u', '--update', nargs='+',
                         help='This variable enables the update of a particular database including the the generation of decoys, (supported databases: crap, swissprot, human-uniprot)')
-    parser.add_argument('-d', '--decoy', nargs="+", help="The command line option to generate the decoy, using different tools (eg: 'Decoy -shuffle -in %s -out %s')")
+    parser.add_argument('-d', '--decoy', help="The command line option to generate the decoy, using different tools (eg: 'Decoy -shuffle -in s -out s')")
 
     args = parser.parse_args()
+
+    if args.decoy is None and args.path is None and args.start is False and args.update is None:
+        parser.print_help()
 
     if args.path:
         path = args.path
 
     if not os.path.isdir(path):
         print ("The path for the directory do not exists")
-        parser.print_help()
+        print parser.print_help()
         exit(1)
 
     if args.start:
@@ -267,8 +272,15 @@ def main():
         if not os.path.isdir(path + humanRefSeq + latest):
             os.mkdir(path + humanRefSeq + latest)
 
+    if not os.path.isdir(path + humanCompleteUniprot):
+        os.mkdir(path + humanCompleteUniprot)
+        if not os.path.isdir(path + humanCompleteUniprot + latest):
+            os.mkdir(path + humanCompleteUniprot + latest)
+
 
     databaseUpdated = args.update
+    if databaseUpdated is None:
+        databaseUpdated = []
 
     if updateAll or ('crap' in databaseUpdated):
 
@@ -370,6 +382,9 @@ def main():
         print("Updating Uniprot Complete Human database and all the dependencies... ")
 
         print("Downloading the Uniprot Complete Human database..")
+
+        if not os.path.isdir(path + humanCompleteUniprot + pathsep + date):
+            os.mkdir(path + humanCompleteUniprot + pathsep + date)
 
         urllib.urlretrieve(humanUniprotProteomeURL, filename=path + humanCompleteUniprot + pathsep + humanUniprotProteomeFile)
         os.rename(path + humanCompleteUniprot + pathsep + humanUniprotProteomeFile, path + humanCompleteUniprot + pathsep + date + pathsep + humanUniprotProteomeFile)
