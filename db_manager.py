@@ -4,6 +4,7 @@ import errno
 import argparse
 from argparse import RawTextHelpFormatter
 
+
 import time
 import urllib
 import urllib
@@ -11,8 +12,70 @@ import gzip, tarfile, zipfile, re
 from ftplib import FTP
 from subprocess import call
 
+# Global variables
+
 download_progress = 0
 pathsep = "/"
+date = time.strftime("%d-%m-%Y")
+
+
+# The crap databases
+
+crapURL = "ftp://ftp.thegpm.org/fasta/cRAP/"
+crapFile = "crap.fasta"
+
+maxQuantcrapURL = "http://maxquant.org/"
+maxQuantcrapFile = "contaminants.zip"
+
+# General Uniprot-SwissProt databases
+
+uniprotSprotURL = "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/"
+uniprotSprotFile = "uniprot_sprot.fasta.gz"
+
+uniprotSprotDatURL = "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/"
+uniprotSprotDatFile = "uniprot_sprot.dat.gz"
+
+uniprotSprotTaxonomiesDumpURL = "ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/"
+uniprotSprotTaxonomiesDumpFile = "taxdump.tar.gz"
+
+uniprotSprotSpecListURL = "ftp://ftp.ebi.ac.uk/pub/databases/uniprot/knowledgebase/docs/"
+uniprotSprotSpecListFile = "speclist.txt"
+
+humanUniprotProteomeURL = 'http://www.uniprot.org/uniprot/?query=taxonomy:9606+AND+keyword:"Complete+proteome"&force=yes&format=fasta&include=yes&compress=yes'
+humanUniprotProteomeFile = 'humanUniprotFile.fasta.gz'
+
+humanSwissProtURL  = 'http://www.uniprot.org/uniprot/?sort=&desc=&compress=yes&query=&fil=reviewed:yes+AND+taxonomy:9606&format=fasta&force=yes&include=yes'
+humanSwissProtFile = 'humanSwissFile.fasta.gz'
+
+# Human ReqSeq: The human ReqSeq contains species-specific RefSeq directories provide a cumulative set of records for transcripts and proteins for those species.
+
+humanRefSeqURL = 'ftp://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/mRNA_Prot/'
+
+
+# Human ENSEMBL Peptides database: the super-set of all translations resulting from Ensembl known or novel gene predictions.
+
+humanENSEMBLURL  = 'ftp://ftp.ensembl.org/pub/current_fasta/homo_sapiens/pep/'
+humanENSEMBLFILE = 'human_pep.all.fa.gz'
+
+# Spectral Libraries
+
+gpmdbURL = "ftp://ftp.thegpm.org/projects/xhunter/libs/"
+nistLibraries = ""
+
+
+
+# Databases path
+latest = pathsep + "latest"
+crapDir = pathsep + "crap"
+maxQuantCrap = pathsep + "mq-crap"
+path = "."
+swissprot = pathsep + "swissprot"
+humanCompleteUniprot = pathsep + "complete-human"
+humanSwissProt  = pathsep + "human-swissprot"
+humanENSEMBL    = pathsep + "human-ensembl"
+humanRefSeq     = pathsep + "human-refseq"
+gpmdbSpectraLib = pathsep + "gpmdb-splib"
+
 
 def runDecoy(dir, decoyCommand):
     files = os.listdir(dir)
@@ -80,11 +143,11 @@ def downloadFiles(url, fileName):
     print("File Donwload Complete: " + url)
 
 def rsyncFiles(url,path):
-    subprocess.call(["rsync", "-va", "--progress", url, " ", path])
+    subprocess.call("wget " + url + "--recursive -np", shell=True)
 
 def gunzipBig(fileName):
     try:
-        call(["gunzip", fileName])
+        call(["gunzip -f ", fileName])
     except:
         print ("Unexpected error from systems:", sys.exc_info())
 
@@ -133,73 +196,13 @@ def unzip(fileName):
             os.makedirs(dirname)
         zfile.extract(name, dirname)
 
+def downloadWgetFiles(gpmdbURL, dir):
+    try:
+        call("wget " + url + "--recursive -np -P " + dir, shell=True)
+    except:
+        print ("Unexpected error from systems:", sys.exc_info())
 
 def main():
-    # Get the date for any update, etc
-    date = time.strftime("%d-%m-%Y")
-
-    # <!-- This section contains the URL of all the databases, we can use in the future a more useful system based on text files, but for now is fine -->
-
-    # The crap databases
-
-    crapURL = "ftp://ftp.thegpm.org/fasta/cRAP/"
-    crapFile = "crap.fasta"
-
-    maxQuantcrapURL = "http://maxquant.org/"
-    maxQuantcrapFile = "contaminants.zip"
-
-    # General Uniprot-SwissProt databases
-
-    uniprotSprotURL = "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/"
-    uniprotSprotFile = "uniprot_sprot.fasta.gz"
-
-    uniprotSprotDatURL = "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/"
-    uniprotSprotDatFile = "uniprot_sprot.dat.gz"
-
-    uniprotSprotTaxonomiesDumpURL = "ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/"
-    uniprotSprotTaxonomiesDumpFile = "taxdump.tar.gz"
-
-    uniprotSprotSpecListURL = "ftp://ftp.ebi.ac.uk/pub/databases/uniprot/knowledgebase/docs/"
-    uniprotSprotSpecListFile = "speclist.txt"
-
-
-    ## Human Databases: This databases are used for Human ##
-
-    # Human Complete Proteome Uniprot: A UniProt complete proteome consists of the set of proteins thought to be expressed by an organism whose genome has been completely sequenced (SwissProt+TreMBL)
-
-    humanUniprotProteomeURL = 'http://www.uniprot.org/uniprot/?query=taxonomy:9606+AND+keyword:"Complete+proteome"&force=yes&format=fasta&include=yes&compress=yes'
-    humanUniprotProteomeFile = 'humanUniprotFile.fasta.gz'
-
-    humanSwissProtURL  = 'http://www.uniprot.org/uniprot/?sort=&desc=&compress=yes&query=&fil=reviewed:yes+AND+taxonomy:9606&format=fasta&force=yes&include=yes'
-    humanSwissProtFile = 'humanSwissFile.fasta.gz' \
-                         ''
-    # Human ReqSeq: The human ReqSeq contains species-specific RefSeq directories provide a cumulative set of records for transcripts and proteins for those species.
-
-    humanRefSeqURL = 'ftp://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/mRNA_Prot/'
-
-
-    # Human ENSEMBL Peptides database: the super-set of all translations resulting from Ensembl known or novel gene predictions.
-
-    humanENSEMBLURL  = 'ftp://ftp.ensembl.org/pub/current_fasta/homo_sapiens/pep/'
-    humanENSEMBLFILE = 'human_pep.all.fa.gz'
-
-    # <!-- End of Databases --!>
-
-    # <!--- Conf Paths -->
-
-
-    latest = pathsep + "latest"
-    crapDir = pathsep + "crap"
-    maxQuantCrap = pathsep + "mq-crap"
-    path = "."
-    swissprot = pathsep + "swissprot"
-    humanCompleteUniprot = pathsep + "complete-human"
-    humanSwissProt  = pathsep + "human-swissprot"
-    humanENSEMBL    = pathsep + "human-ensembl"
-    humanRefSeq     = pathsep + "human-refseq"
-
-    # <!-- End of the Conf Paths -->
-
     updateAll = False
 
     parser = argparse.ArgumentParser(
@@ -276,6 +279,12 @@ def main():
         os.mkdir(path + humanCompleteUniprot)
         if not os.path.isdir(path + humanCompleteUniprot + latest):
             os.mkdir(path + humanCompleteUniprot + latest)
+
+    if not os.path.isdir(path + gpmdbSpectraLib):
+        os.mkdir(path + gpmdbSpectraLib)
+        if not os.path.isdir(path + gpmdbSpectraLib + latest):
+            os.mkdir(path + gpmdbSpectraLib + latest)
+
 
 
     databaseUpdated = args.update
@@ -461,6 +470,17 @@ def main():
         symbolink(path + humanRefSeq + pathsep + date, path + humanRefSeq + latest)
 
         print("Human ReqSeq updated!!")
+
+    if updateAll or ('gpmdb-splib' in databaseUpdated):
+
+        if not os.path.isdir(path + gpmdbSpectraLib + pathsep + date):
+            os.mkdir(path + gpmdbSpectraLib + pathsep + date)
+
+        downloadWgetFiles(gpmdbURL, path+gpmdbSpectraLib +pathsep+date+pathsep)
+
+
+
+
 
 if __name__ == '__main__':
     main()
